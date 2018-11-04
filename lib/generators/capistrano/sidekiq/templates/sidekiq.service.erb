@@ -1,0 +1,23 @@
+<% command = SSHKit::Command.new(:bundle, :exec, :sidekiq, ["-C", fetch(:sidekiq_config), "-e", fetch(:sidekiq_app_env)]) %>
+[Unit]
+Description=Sidekiq for <%= "#{fetch(:application)} (#{fetch(:stage)})" %>
+Wants=nginx.service postgresql.service
+After=redis.service postgresql.service
+
+[Service]
+Type=simple
+User=<%= fetch(:sidekiq_user) %>
+WorkingDirectory=<%= current_path %>
+Environment=RAILS_ENV=<%= fetch(:sidekiq_app_env) %>
+<% command.environment_hash.each_pair do |key, value| %>
+  Environment=<%= key %>=<%= value %>
+<% end %>
+SyslogIdentifier=sidekiq
+
+ExecStart=<%= command.to_s %>
+
+RestartSec=1
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
